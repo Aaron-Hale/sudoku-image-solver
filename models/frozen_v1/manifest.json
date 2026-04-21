@@ -1,0 +1,40 @@
+{
+  "version": "v1_draft",
+  "blessed_stack": {
+    "geometry": "letterbox_segmentation",
+    "warp": "original_image_ocr_warp",
+    "crops": "equal_split",
+    "occupancy": "current_occupancy_baseline",
+    "digit": "chars74k_transfer_cnn",
+    "readout": "occ_platt_digit_temp_no_decode"
+  },
+  "artifacts": {
+    "segmentation": {
+      "path": "models/frozen_v1/segmentation/letterbox_seg_checkpoint.pt",
+      "sha256": "2621676c9ea1be303b7e4602bfce32522eb8fb6aa0629b2ed87deb310c6244da"
+    },
+    "occupancy": {
+      "path": "models/frozen_v1/occupancy/occupancy_model.npz",
+      "sha256": "f52ec59ccbbe07fe9123dfff9165ff4db4567e3049c748149d316fabe70c1ea0"
+    },
+    "digit": {
+      "path": "models/frozen_v1/digits/digit_cnn.pt",
+      "sha256": "4aa75ee9cb3c98907b4c9d15db9702892af373393706d003d6b245fba7fb085d"
+    },
+    "calibration": {
+      "occ": "models/frozen_v1/calibration/occ_calibration.json",
+      "digit": "models/frozen_v1/calibration/digit_calibration.json"
+    }
+  },
+  "config": {
+    "default_warp_size": 900,
+    "trim_frac": 0.12,
+    "occ_threshold": 0.35
+  },
+  "official_metrics": {
+    "combined_non_kaggle_exact_givens": 0.859504,
+    "core_test_non_kaggle_exact_givens": 0.887097,
+    "hot_latency_mean_ms": 233.206886,
+    "hot_latency_p95_ms": 239.557425
+  }
+}

@@ -1,0 +1,78 @@
+{
+  "source_notebook": "20_day28_calibration_constrained_decode_v5.ipynb",
+  "note": "NB20 had SAVE_NOTEBOOK_ARTIFACTS=False, so these JSON files are the exported canonical notebook-derived values.",
+  "blessed_variant": "occ_platt_digit_temp_no_decode",
+  "occ_threshold": 0.35,
+  "occ_calibration_path": "models/frozen_v1/calibration/occ_calibration.json",
+  "digit_calibration_path": "models/frozen_v1/calibration/digit_calibration.json",
+  "notebook_config": {
+    "train_split": "core_train",
+    "eval_splits": [
+      "core_val",
+      "core_test"
+    ],
+    "include_kaggle_train": false,
+    "exclude_kaggle_eval": true,
+    "default_warp_size": 900,
+    "trim_frac": 0.12,
+    "baseline_occ_threshold": 0.5,
+    "occ_cal_epochs": 600,
+    "digit_cal_epochs": 800,
+    "cal_lr": 0.05,
+    "weight_decay": 0.0001,
+    "occ_threshold_grid_start": 0.35,
+    "occ_threshold_grid_stop": 0.75,
+    "occ_threshold_grid_step": 0.025
+  },
+  "frozen_metrics": {
+    "combined_non_kaggle": {
+      "n_eval_boards": 121,
+      "exact_givens_match_rate": 0.859504,
+      "mean_givens_accuracy": 0.975222,
+      "mean_full_board_cell_accuracy": 0.988369,
+      "total_missed_as_empty": 71,
+      "total_wrong_digit": 22,
+      "total_false_positive_on_empty": 21,
+      "legality_failure_rate": 0.082645,
+      "mean_total_est_latency_ms": 230.852254,
+      "median_total_est_latency_ms": 230.943708,
+      "p95_total_est_latency_ms": 234.624667
+    },
+    "split_breakdown": {
+      "core_test": {
+        "n_eval_boards": 62,
+        "exact_givens_match_rate": 0.887097,
+        "mean_givens_accuracy": 0.985379,
+        "mean_full_board_cell_accuracy": 0.994225,
+        "total_missed_as_empty": 22,
+        "total_wrong_digit": 5
+      },
+      "core_val": {
+        "n_eval_boards": 59,
+        "exact_givens_match_rate": 0.830508,
+        "mean_givens_accuracy": 0.964549,
+        "mean_full_board_cell_accuracy": 0.982214,
+        "total_missed_as_empty": 49,
+        "total_wrong_digit": 17
+      }
+    },
+    "latency_benchmark": {
+      "in_memory": {
+        "mean_total_ms": 229.912455,
+        "median_total_ms": 229.936708,
+        "p95_total_ms": 233.135758,
+        "mean_seg_and_corners_ms": 218.581451,
+        "mean_warp_and_crop_ms": 0.985275,
+        "mean_model_infer_ms": 10.287473,
+        "mean_calibration_decode_ms": 0.058256
+      },
+      "full_hot_path": {
+        "mean_read_decode_ms": 4.659947,
+        "mean_infer_ms": 228.383459,
+        "mean_full_ms": 233.206886,
+        "median_full_ms": 232.948833,
+        "p95_full_ms": 239.557425
+      }
+    }
+  }
+}
