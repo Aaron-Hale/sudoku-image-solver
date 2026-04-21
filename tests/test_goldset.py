@@ -3,9 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
-
 from src.sudoku_solver.frozen_config import REPO_ROOT, load_frozen_paths
+from src.sudoku_solver.inference import predict_givens_from_image
 
 
 GOLD_MANIFEST = REPO_ROOT / "tests" / "goldset" / "manifests" / "gold_regression.jsonl"
@@ -64,18 +63,6 @@ def test_frozen_manifest_paths_exist():
     assert frozen["readout"] == "occ_platt_digit_temp_no_decode"
 
 
-def predict_givens_from_image(_image_path: Path) -> list[list[int]]:
-    """
-    TODO:
-    Replace this stub with the real repo inference entrypoint once the
-    frozen image-solver pipeline has been moved out of notebooks.
-    """
-    raise NotImplementedError(
-        "Implement repo inference first, then wire this test to it."
-    )
-
-
-@pytest.mark.skip(reason="Enable after repo inference entrypoint is implemented.")
 def test_gold_predictions_match_expected():
     rows = load_gold_rows()
     for row in rows:
