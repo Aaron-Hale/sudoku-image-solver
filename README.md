@@ -24,12 +24,13 @@ In this repo:
 ---
 
 ## Benchmark context
-
 > [!IMPORTANT]
-> **These benchmark numbers are directional, not directly comparable.**
-> Each system was trained and evaluated on different datasets with different image quality, framing, board size, distortion, and reporting rules.
-
-> This repo’s evaluation slice includes harder real-photo cases such as **small puzzles in frame**, **skew / tilt**, **blur / faint digits**, and other post-geometry OCR difficulties, so direct comparison to cleaner close-up datasets can be misleading.
+> **Do not read this as a strict leaderboard.**
+> These systems were trained and evaluated on different datasets, with different image quality, framing, board size, distortion, and reporting rules. Several published approaches also used cleaner images with less noise and larger boards.
+>
+> This table is included to show the broader landscape and provide rough metric context, not to claim exact apples-to-apples ranking.
+>
+> This repo’s evaluation includes harder real-photo cases such as **small puzzles in frame**, **skew / tilt**, **blur / faint digits**, and other post-geometry OCR difficulties, so direct comparison to cleaner close-up datasets can be misleading.
 
 | System | Cell accuracy | Board accuracy |
 |---|---:|---:|
