@@ -30,15 +30,25 @@ In this repo:
 
 ## Example predictions
 
-Below are two example predictions from the frozen V1 pipeline.
+Below are two real examples from the project showing the geometry step and the post-warp cell-level prediction overlay.
 
-### Example 1
-![Example 1 prediction overlay](docs/images/readme_example_easy.png)
+### Example 1 — `cv_0002`
 
-### Example 2
-![Example 2 prediction overlay](docs/images/readme_example_hard.png)
+**Pre-warp / geometry debug**
+![cv_0002 geometry debug](docs/images/02_cv_0002_geometry_debug.jpg)
 
-These examples are meant to show the type of real-image inputs handled by this repo, including cases where the puzzle is not perfectly centered or tightly cropped.
+**Post-warp / prediction overlay**
+![cv_0002 prediction overlay](docs/images/02_cv_0002_overlay.jpg)
+
+### Example 2 — `cv_0003`
+
+**Pre-warp / geometry debug**
+![cv_0003 geometry debug](docs/images/03_cv_0003_geometry_debug.jpg)
+
+**Post-warp / prediction overlay**
+![cv_0003 prediction overlay](docs/images/03_cv_0003_overlay.jpg)
+
+These examples help show why direct benchmark comparison is tricky: this repo was built and evaluated on real-photo cases that include small puzzles in frame, skew / tilt, blur, faint digits, and other OCR difficulties rather than only clean close-up crops.
 
 ## Benchmark context
 
