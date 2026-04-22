@@ -48,7 +48,7 @@ This is a **clean public artifact** for the frozen system, not the full private 
 
 ## Problem setting
 
-The target problem is not synthetic Sudoku or only perfectly cropped close-up boards.
+The target problem is not synthetic Sudoku and not only perfectly cropped close-up boards.
 
 The evaluation includes real-photo OCR difficulties such as:
 - small puzzles in frame
@@ -75,13 +75,11 @@ The frozen production path is:
    - `occ_platt_digit_temp_no_decode`
 
 ### Frozen config
-
 - `DEFAULT_WARP_SIZE = 900`
 - `TRIM_FRAC = 0.12`
 - `occ_threshold = 0.35`
 
 ### Frozen calibration
-
 - Occupancy calibration: Platt scaling
 - Digit calibration: temperature scaling
 
@@ -90,16 +88,16 @@ The frozen production path is:
 ## Stagewise summary
 
 ### 1) Geometry: finding the board
-The first problem was simply finding the Sudoku board reliably in a full image. The project started with a **classical CV detector** based on contours and quadrilateral selection. That worked for close-up boards, but it broke when the puzzle was small in frame, blurred, cluttered, or competing with other rectangular structures.
+The first problem was simply finding the Sudoku board reliably in a full image. The project started with a **classical CV detector** based on contours and quadrilateral selection. That worked well for close-up boards, but it broke when the puzzle was small in frame, blurred, cluttered, or competing with other rectangular structures.
 
 To fix that, the project moved to a **trained segmentation model** using the existing board-corner labels already available in the dataset. That solved most of the geometry problem immediately. On `core_val`, the classical front end reached only **18.64%** exact board match, while segmentation reached **76.27%**, close to **77.97%** with oracle label corners.
 
-The final geometry refinement was choosing **how to preprocess images for segmentation**. A controlled comparison showed that **letterbox-trained segmentation** (aspect-ratio-preserving resize with padding) was better than stretch-trained segmentation on the downstream metric that mattered most. It got **97.52%** of boards with all 4 corners within **25 px**, versus **93.39%** for stretch, so letterbox became the frozen V1 geometry front end.
+The final geometry refinement was choosing **how to preprocess images for segmentation**. A controlled comparison showed that **letterbox-trained segmentation** (aspect-ratio-preserving resize with padding) was better than stretch-trained segmentation on the downstream metric that mattered most. It got **97.52%** of boards with all 4 corners within **25 px**, versus **93.39%** for stretch, and also produced better end-to-end exact givens match (**85.12%** vs **82.64%**). That is why letterbox became the frozen V1 geometry front end.
 
-### 2) Converting the board into OCR-ready cells
-Once board localization was strong, the next problem was how to turn a warped board into stable **cell crops** for OCR. The project compared two options: simple **equal-split crops** versus **refit/grid-box crops** that try to follow the inner lattice more closely.
+### 2) Turning the board into OCR-ready cells
+In parallel, the project also evaluated how a warped board should be converted into stable **cell crops** for OCR. The two main options were simple **equal-split crops** versus **refit/grid-box crops** that try to follow the inner lattice more closely.
 
-A manual A/B review on **40 validation boards** showed that equal split was already strong enough: **11 boards favored equal split, 3 favored refit, and 26 were ties**. Refit remained useful for parser-side debugging and imperfect warps, but it was not a large enough win to justify making it the default public inference path.
+Refit was appealing because it could help when the warp was imperfect, but it also added complexity and was not obviously better on most boards. A manual A/B review on **40 validation boards** showed that equal split was already strong enough: **11 boards favored equal split, 3 favored refit, and 26 were ties**. Refit remained useful for parser-side debugging and imperfect-warp analysis, but it was not a large enough win to justify making it the default public inference path.
 
 That is why the frozen V1 system uses **equal-split crops** as the default OCR path.
 
@@ -108,7 +106,7 @@ The OCR problem was split into two stages:
 1. **Occupancy**: is a cell empty or filled?
 2. **Digit recognition**: if filled, which digit is it?
 
-That split mattered because those two tasks fail differently. Occupancy is easier in principle, while digit recognition is a harder shape-classification problem.
+That split mattered because those two tasks fail differently. Occupancy is easier in principle, while digit recognition is a harder shape-classification problem. After blacklist cleanup, the occupancy model was already strong enough to keep as the main stage, reaching **98.47%** validation accuracy with **99.01%** precision on filled cells and **97.14%** recall on filled cells.
 
 For digits, the project first tried a **linear softmax baseline**, which reached only **73.8%** validation accuracy and clearly underfit the printed-digit task. The next step was to move to a **CNN**, which was much better aligned with the visual nature of the problem. In the Day 21 benchmark, the best setup was **Chars74K transfer** at **94.53%** validation accuracy, ahead of **cells only (93.63%)**, **MNIST transfer (94.26%)**, and **EMNIST transfer (94.37%)**.
 
@@ -121,13 +119,11 @@ To answer that, the project measured OCR under **correct geometry** by using lab
 - **99.72%** occupancy accuracy
 - **99.59%** occupied-cell digit accuracy
 
-But with full pure-model inference, the system reached:
+But with full pure-model inference, the system still reached only:
 - **84.30%** exact givens match
 - **97.09%** mean givens accuracy
 
-That gap showed the remaining problem was **not** basic OCR capacity and **not** a lack of heavier Sudoku logic. The main issue was end-to-end robustness on hard real-photo boards.
-
-The dominant remaining failure mode was **filled cells being dropped as empty**, which is why keeping occupancy separate from digit recognition was useful: it made the true bottleneck visible.
+That gap showed the remaining problem was **not** basic OCR capacity and **not** a lack of heavier Sudoku logic. The main issue was end-to-end robustness on hard real-photo boards. More specifically, the dominant remaining failure mode was **filled cells being dropped as empty**: the combined held-out evaluation logged **83 `missed_as_empty` errors** versus only **19 `wrong_digit` errors**. Keeping occupancy separate from digit recognition made that bottleneck visible.
 
 ### 5) Final V1 direction
 By this point, the project had enough evidence to stop treating the system as an open-ended experiment and lock a production path.
@@ -140,7 +136,9 @@ The frozen V1 system uses:
 - a **Chars74K-transfer CNN** for digits
 - a calibrated no-decode readout: `occ_platt_digit_temp_no_decode`
 
-That combination was not chosen because each component looked best in isolation. It was chosen because it gave the best overall balance of **board-level accuracy, robustness, simplicity, and latency** on the real-photo task this repo is meant to solve.
+The final OCR-warp choice was also validated directly. Switching from the resized segmentation image to an **original-image OCR warp** improved downstream behavior while keeping latency roughly flat. On `core_val`, mean givens accuracy improved from **0.9519** to **0.9619**, `missed_as_empty` dropped from **68** to **52**, and `wrong_digit` dropped from **20** to **17**. On held-out `core_test`, exact givens match improved from **0.8710** to **0.8871**, and `wrong_digit` dropped from **10** to **5**.
+
+A conservative false-empty override was tested as well, but it did **not** justify becoming the default path: it added major latency without meaningful held-out improvement. That is why the frozen V1 system locks in **letterbox segmentation + original-image OCR warp + equal-split crops + separate occupancy + Chars74K-transfer CNN + calibrated no-decode readout** as the final production direction.
 
 ---
 
@@ -158,7 +156,6 @@ The final system was not the first baseline. The project tested multiple alterna
 | Final readout | **`occ_platt_digit_temp_no_decode`** | Default false-empty override, CLAHE-first path, aggressive constrained-decoding default |
 
 ### Why this readout stayed
-
 The final readout matched the strongest practical success behavior while staying simpler and slightly lower-latency than the closest competing no-decode variant.
 
 ---
@@ -226,7 +223,6 @@ The most meaningful comparisons are:
 ## What is solved, and what is still hard
 
 ### Solved enough for V1
-
 - geometry is solved enough for V1
 - segmentation is the correct production front end
 - original-image warp is the correct OCR warp path
@@ -234,7 +230,6 @@ The most meaningful comparisons are:
 - the current digit recognizer is good enough
 
 ### Remaining failure pattern
-
 The remaining misses are concentrated in a minority of hard boards.
 
 The dominant remaining failure mode is still:
@@ -250,7 +245,6 @@ Hard cases cluster around:
 - a few real ambiguities such as **6 vs 8**
 
 ### What this repo does not claim
-
 - live AR-grade temporal stability
 - fully solved scene-level board discovery
 - a completely solved last-mile OCR problem
@@ -264,7 +258,6 @@ This is a strong frozen V1 system, not a claim that Sudoku image understanding i
 The repo is intentionally frozen around a narrow V1 path. A refactor should preserve behavior and should not silently swap artifacts or configs.
 
 ### Frozen artifact family
-
 - `models/frozen_v1/segmentation/letterbox_seg_checkpoint.pt`
 - `models/frozen_v1/occupancy/occupancy_model.npz`
 - `models/frozen_v1/digits/digit_cnn.pt`
@@ -273,13 +266,11 @@ The repo is intentionally frozen around a narrow V1 path. A refactor should pres
 - `models/frozen_v1/calibration/calibration_manifest.json`
 
 ### Official evaluation policy
-
 - Kaggle-tagged images are excluded from the public reported metrics
 - the primary metric is **exact givens match**
 - supporting metrics include mean givens accuracy, mean full-board cell accuracy, legality failure rate, and latency
 
 ### Running the frozen evaluation
-
 The full frozen evaluation expects access to the original labeled data tree and raw images. Those assets are not bundled into this public repo.
 
 ```bash
