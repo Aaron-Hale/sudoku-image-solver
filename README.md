@@ -213,8 +213,7 @@ The repo is intentionally frozen around a narrow V1 path. A refactor should pres
 
 ### Official evaluation policy
 
-- official public reporting is **non-Kaggle evaluation only**
-- Kaggle-tagged boards are excluded from the public reported slice
+- While appended to the training dataset, images from the Kaggle dataset are excluded from the public reported slice
 - the primary metric is **exact givens match**
 - supporting metrics include mean givens accuracy, mean full-board cell accuracy, legality failure rate, and latency
 
