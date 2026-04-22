@@ -22,39 +22,6 @@ In this repo:
 - **Cell accuracy** = mean full-board cell accuracy across all 81 cells
 
 ---
-
-## Benchmark context
-> [!IMPORTANT]
-> **Do not read this as a strict leaderboard.**
-> These systems were trained and evaluated on different datasets, with different image quality, framing, board size, distortion, and reporting rules. Several published approaches also used cleaner images with less noise and larger boards.
->
-> This table is included to show the broader landscape and provide rough metric context, not to claim exact apples-to-apples ranking.
->
-> This repo’s evaluation includes harder real-photo cases such as **small puzzles in frame**, **skew / tilt**, **blur / faint digits**, and other post-geometry OCR difficulties, so direct comparison to cleaner close-up datasets can be misleading.
-
-| System | Cell accuracy | Board accuracy |
-|---|---:|---:|
-| **This repo** | **98.84%** | **85.95%** |
-| **[Kainos Sudoku CV project](https://www.kainos.com/insights/blogs/ai-academy-capstone-projects--improving-document-data-extraction-through-contextualisation-computer-vision-based-sudoku-solver)** | — | **93.8%*** |
-| **[PBCS / Sudoku Assistant (2024)](https://link.springer.com/article/10.1007/s10601-024-09372-9)** | **99.2%** | **94.84%** |
-| **[Wicht / smartphone Sudoku dataset](https://github.com/wichtounet/sudoku_dataset)** | — | **87.5%**† |
-| **[mineshpatel1/sudoku-solver](https://github.com/mineshpatel1/sudoku-solver)** | — | **99.2%** |
-| **[Recurrent Transformer (ICLR 2023)](https://openreview.net/forum?id=udNhDCr2KQe)** | **99.77%** | **93.5%** |
-| **[NeurASP](https://www.ijcai.org/proceedings/2020/0243.pdf)** | **96.9%** | **66.5%** |
-| **[AS2 (2026)](https://arxiv.org/abs/2603.18436)** | **99.89%** | **100.0%**‡ |
-
-\* Reported on “starting boards” only, which is closer to this repo’s intended use case than completed-board evaluation, but it is still a different dataset and protocol.  
-† Wicht’s dataset page reports 12.5% error on one real-image setup, equivalent to 87.5% accuracy. This is a historical real-camera benchmark, not the same eval protocol as this repo.  
-‡ AS2 reports 100% constraint satisfaction on Visual Sudoku, which is a synthetic / normalized benchmark and not directly comparable to a real printed-camera-photo OCR pipeline.
-
-### How to read this table
-This table is meant as **context**, not a strict leaderboard.
-
-The most meaningful comparisons are:
-- other systems that read Sudoku from **real images**
-- other systems that report **board-level** accuracy, not only digit accuracy
-- systems whose task is closer to **printed-camera-photo OCR**, not only synthetic Visual Sudoku
-
 ## What this repo is
 
 This repo starts from **labeled data / training-ready artifacts onward**.
@@ -118,7 +85,24 @@ The frozen production path is:
 - Digit calibration: temperature scaling
 
 ---
+## Stagewise summary
 
+### 1) Geometry
+Board localization was the main early bottleneck. On `core_val`, the classical CV front end reached only **18.64%** exact board match, while segmentation reached **76.27%**, close to **77.97%** with oracle label corners. Classical CV worked when the board dominated the frame, but broke on small boards, clutter, blur, and competing rectangular structures, which is why segmentation became the primary front end.
+
+### 2) Warping and crop strategy
+After geometry improved, the next question was how to crop cells for OCR. A manual A/B review on 40 validation boards showed **equal split better on 11 boards**, **refit better on 3**, and **26 ties**, so equal split stayed the default OCR crop path. Refit remained useful for parser-side debugging and imperfect warps, but it was not a clear overall win for the training/inference path.
+
+### 3) OCR model choice
+The digit task turned out to be materially harder than occupancy. A linear softmax baseline reached only **73.8%** validation accuracy and clearly underfit the printed-digit problem, so the repo moved to a CNN. In the Day 21 benchmark, **Chars74K transfer** was the best setup at **94.53%** validation accuracy, ahead of **cells only (93.63%)**, **MNIST transfer (94.26%)**, and **EMNIST transfer (94.37%)**. That fit the task: printed OCR-style pretraining helped more than handwritten-only sources.
+
+### 4) Stagewise vs end-to-end behavior
+With labeled corners, the OCR stack was already very strong: **99.72%** occupancy accuracy and **99.59%** occupied-cell digit accuracy. But full pure-model inference still reached **84.30%** exact givens match and **97.09%** mean givens accuracy. That showed the remaining gap was not basic OCR capacity or heavier Sudoku logic; it was end-to-end robustness on hard real-photo boards, especially **filled cells being dropped as empty**.
+
+### 5) Final V1 direction
+The final V1 path keeps the components that won the stagewise decisions: **segmentation** for geometry, **equal-split crops** for OCR, a separate **occupancy stage**, and a **Chars74K-transfer CNN** for digits. Later controlled comparison also showed **letterbox-trained segmentation** outperforming **stretch-trained segmentation** on the downstream metric that mattered most (**85.12%** vs **82.64%** exact givens match), which is why letterbox became the locked production path.
+
+---
 ## Major decisions that stuck
 
 The final system was not the first baseline. The project tested multiple alternatives and froze the path that best balanced end-to-end accuracy, simplicity, and latency.
@@ -138,6 +122,39 @@ The final readout matched the strongest practical success behavior while staying
 
 ---
 
+## Benchmark context
+> [!IMPORTANT]
+> **Do not read this as a strict leaderboard.**
+> These systems were trained and evaluated on different datasets, with different image quality, framing, board size, distortion, and reporting rules. Several published approaches also used cleaner images with less noise and larger boards.
+>
+> This table is included to show the broader landscape and provide rough metric context, not to claim exact apples-to-apples ranking.
+>
+> This repo’s evaluation includes harder real-photo cases such as **small puzzles in frame**, **skew / tilt**, **blur / faint digits**, and other post-geometry OCR difficulties, so direct comparison to cleaner close-up datasets can be misleading.
+
+| System | Cell accuracy | Board accuracy |
+|---|---:|---:|
+| **This repo** | **98.84%** | **85.95%** |
+| **[Kainos Sudoku CV project](https://www.kainos.com/insights/blogs/ai-academy-capstone-projects--improving-document-data-extraction-through-contextualisation-computer-vision-based-sudoku-solver)** | — | **93.8%*** |
+| **[PBCS / Sudoku Assistant (2024)](https://link.springer.com/article/10.1007/s10601-024-09372-9)** | **99.2%** | **94.84%** |
+| **[Wicht / smartphone Sudoku dataset](https://github.com/wichtounet/sudoku_dataset)** | — | **87.5%**† |
+| **[mineshpatel1/sudoku-solver](https://github.com/mineshpatel1/sudoku-solver)** | — | **99.2%** |
+| **[Recurrent Transformer (ICLR 2023)](https://openreview.net/forum?id=udNhDCr2KQe)** | **99.77%** | **93.5%** |
+| **[NeurASP](https://www.ijcai.org/proceedings/2020/0243.pdf)** | **96.9%** | **66.5%** |
+| **[AS2 (2026)](https://arxiv.org/abs/2603.18436)** | **99.89%** | **100.0%**‡ |
+
+\* Reported on “starting boards” only, which is closer to this repo’s intended use case than completed-board evaluation, but it is still a different dataset and protocol.  
+† Wicht’s dataset page reports 12.5% error on one real-image setup, equivalent to 87.5% accuracy. This is a historical real-camera benchmark, not the same eval protocol as this repo.  
+‡ AS2 reports 100% constraint satisfaction on Visual Sudoku, which is a synthetic / normalized benchmark and not directly comparable to a real printed-camera-photo OCR pipeline.
+
+### How to read this table
+This table is meant as **context**, not a strict leaderboard.
+
+The most meaningful comparisons are:
+- other systems that read Sudoku from **real images**
+- other systems that report **board-level** accuracy, not only digit accuracy
+- systems whose task is closer to **printed-camera-photo OCR**, not only synthetic Visual Sudoku
+
+---
 ## Example predictions
 
 Below are two real examples from the project showing the geometry step and the post-warp cell-level prediction overlay.
