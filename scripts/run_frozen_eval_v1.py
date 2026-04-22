@@ -1,45 +1,60 @@
 from __future__ import annotations
 
-import sys
-from pathlib import Path
-
-REPO_ROOT = Path(__file__).resolve().parents[1]
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
-
 import argparse
 import json
+import os
+import sys
 import time
 from pathlib import Path
 from typing import Any
 
 import pandas as pd
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
 from src.sudoku_solver.inference import predict_givens_from_image
-from src.sudoku_solver.frozen_config import REPO_ROOT
 
 
 def parse_args():
-    p = argparse.ArgumentParser(description="Run frozen repo inference on label JSONs and report parity metrics.")
-    p.add_argument("--old-repo-root", type=Path, default=Path("/Users/aaronhale/Desktop/sudoku_solver"))
+    p = argparse.ArgumentParser(
+        description="Run frozen repo inference on label JSONs and report parity metrics."
+    )
+    p.add_argument(
+        "--data-root",
+        type=Path,
+        default=None,
+        help="Root directory containing data/raw and data/labels/boards",
+    )
     p.add_argument("--splits", nargs="+", default=["core_test"])
     p.add_argument("--exclude-kaggle", action="store_true", default=False)
     p.add_argument("--output-dir", type=Path, default=REPO_ROOT / "reports" / "frozen_eval_v1")
-    return p.parse_args()
+    args = p.parse_args()
+
+    if args.data_root is None:
+        env_root = os.environ.get("SUDOKU_DATA_ROOT")
+        if env_root:
+            args.data_root = Path(env_root)
+
+    if args.data_root is None:
+        p.error("Set --data-root /path/to/dataset_root or export SUDOKU_DATA_ROOT=/path/to/dataset_root")
+
+    return args
 
 
 def is_kaggle_record(rec: dict[str, Any]) -> bool:
     return any(str(t).strip().lower() == "kaggle" for t in rec.get("tags", []))
 
 
-def find_raw_image(old_repo_root: Path, rec: dict[str, Any], split: str) -> Path:
+def find_raw_image(data_root: Path, rec: dict[str, Any], split: str) -> Path:
     image_path = rec.get("image_path")
     if isinstance(image_path, str):
-        p = old_repo_root / image_path
+        p = data_root / image_path
         if p.exists():
             return p
     image_id = rec["image_id"]
-    raw_dir = old_repo_root / "data" / "raw" / split
+    raw_dir = data_root / "data" / "raw" / split
     for ext in [".jpg", ".jpeg", ".png"]:
         p = raw_dir / f"{image_id}{ext}"
         if p.exists():
@@ -47,8 +62,8 @@ def find_raw_image(old_repo_root: Path, rec: dict[str, Any], split: str) -> Path
     raise FileNotFoundError(f"Raw image not found for {image_id}")
 
 
-def load_records(old_repo_root: Path, splits: list[str], exclude_kaggle: bool) -> list[dict[str, Any]]:
-    labels_dir = old_repo_root / "data" / "labels" / "boards"
+def load_records(data_root: Path, splits: list[str], exclude_kaggle: bool) -> list[dict[str, Any]]:
+    labels_dir = data_root / "data" / "labels" / "boards"
     out = []
     for jp in sorted(labels_dir.glob("*.json")):
         rec = json.loads(jp.read_text())
@@ -70,14 +85,18 @@ def grid_legality_metrics(grid: list[list[int]]) -> dict[str, int]:
     row_dup_excess = 0
     col_dup_excess = 0
     box_dup_excess = 0
+
     for r in range(9):
         row_dup_excess += _group_duplicate_excess(grid[r])
+
     for c in range(9):
         col_dup_excess += _group_duplicate_excess([grid[r][c] for r in range(9)])
+
     for br in range(0, 9, 3):
         for bc in range(0, 9, 3):
             vals = [grid[r][c] for r in range(br, br + 3) for c in range(bc, bc + 3)]
             box_dup_excess += _group_duplicate_excess(vals)
+
     total_dup_excess = int(row_dup_excess + col_dup_excess + box_dup_excess)
     return {
         "row_dup_excess": row_dup_excess,
@@ -140,7 +159,6 @@ def evaluate_pred_grid(pred_grid: list[list[int]], truth_givens: list[list[int]]
                     )
 
     legality = grid_legality_metrics(pred_grid)
-
     return {
         "n_givens": int(n_givens),
         "n_true_empty": int(n_true_empty),
@@ -185,11 +203,11 @@ def main():
     args = parse_args()
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
-    records = load_records(args.old_repo_root, args.splits, exclude_kaggle=args.exclude_kaggle)
+    records = load_records(args.data_root, args.splits, exclude_kaggle=args.exclude_kaggle)
     rows = []
 
     for rec in records:
-        raw_path = find_raw_image(args.old_repo_root, rec, rec["split"])
+        raw_path = find_raw_image(args.data_root, rec, rec["split"])
         t0 = time.perf_counter()
         pred = predict_givens_from_image(raw_path)
         runtime_ms = (time.perf_counter() - t0) * 1000.0

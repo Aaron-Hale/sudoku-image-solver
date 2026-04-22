@@ -224,7 +224,7 @@ The full frozen evaluation expects access to the original labeled data tree and 
 
 ```bash
 python scripts/run_frozen_eval_v1.py \
-  --old-repo-root /path/to/original/sudoku_solver \
+  --data-root /path/to/private_sudoku_data \
   --splits core_val core_test \
   --exclude-kaggle
 
@@ -270,3 +270,17 @@ This repo is meant to demonstrate three things:
 1. A practical Sudoku OCR system for real photos, not just clean synthetic boards
 2. A clear frozen production path with explicit artifact and metric discipline
 3. Honest end-to-end evaluation where **board accuracy** is treated as the metric that matters most
+
+## Reproducibility note
+
+The frozen model artifacts live in this repo.
+
+Full metric reproduction requires access to the labeled board JSONs and raw evaluation images used by the project. Set `SUDOKU_DATA_ROOT` to the external dataset root, or pass `--data-root` directly to `scripts/run_frozen_eval_v1.py`.
+
+Example:
+
+```bash
+export SUDOKU_DATA_ROOT=/path/to/private_sudoku_data
+pytest -q tests/test_metric_regression.py
+python scripts/run_frozen_eval_v1.py --splits core_val core_test --exclude-kaggle
+```

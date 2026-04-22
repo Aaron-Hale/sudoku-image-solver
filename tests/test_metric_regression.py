@@ -3,14 +3,25 @@ from __future__ import annotations
 import os
 import re
 import subprocess
+from pathlib import Path
 
-from src.sudoku_solver.frozen_config import REPO_ROOT
+import pytest
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+DATA_ROOT = os.environ.get("SUDOKU_DATA_ROOT")
+
+pytestmark = pytest.mark.skipif(
+    not DATA_ROOT,
+    reason="Set SUDOKU_DATA_ROOT to run eval regression tests.",
+)
 
 
 def run_eval(*splits: str) -> str:
     cmd = [
         "python",
         "scripts/run_frozen_eval_v1.py",
+        "--data-root",
+        DATA_ROOT,
         "--splits",
         *splits,
         "--exclude-kaggle",

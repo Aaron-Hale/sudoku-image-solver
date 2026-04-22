@@ -46,7 +46,7 @@ from torch.utils.data import DataLoader, Dataset
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Retrain the NB15 segmentation models and export frozen artifacts.")
-    p.add_argument("--repo-root", type=Path, default=Path("/Users/aaronhale/Desktop/sudoku_solver"))
+    p.add_argument("--repo-root", type=Path, default=Path(__file__).resolve().parents[1])
     p.add_argument("--train-split", default="core_train")
     p.add_argument("--holdout-frac", type=float, default=0.10)
     p.add_argument("--min-holdout", type=int, default=20)
