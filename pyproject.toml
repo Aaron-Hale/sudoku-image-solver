@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sudoku-image-solver"
+version = "0.1.0"
+description = "Frozen V1 Sudoku OCR pipeline for real camera photos and webcam frames."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+  { name = "Aaron Hale" }
+]
+urls = { Repository = "https://github.com/Aaron-Hale/sudoku-image-solver" }
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
