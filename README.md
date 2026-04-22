@@ -28,17 +28,17 @@ In this repo:
 
 ---
 
-## Example real-photo input from this repo
+## Example predictions
 
-This project is not only evaluating clean, tightly cropped boards. Harder inputs often include boards that occupy only part of the frame, plus perspective, blur, screen artifacts, or background clutter.
+Below are two example predictions from the frozen V1 pipeline.
 
-A representative hard-case example is the `cte_0022`-style image discussed during packaging:
-- the board is not a tight crop
-- the puzzle occupies only part of the frame
-- the image includes display/background context
-- OCR difficulty is meaningfully higher than a clean close-up photo
+### Example 1
+![Example 1 prediction overlay](docs/images/readme_example_easy.png)
 
----
+### Example 2
+![Example 2 prediction overlay](docs/images/readme_example_hard.png)
+
+These examples are meant to show the type of real-image inputs handled by this repo, including cases where the puzzle is not perfectly centered or tightly cropped.
 
 ## Benchmark context
 
