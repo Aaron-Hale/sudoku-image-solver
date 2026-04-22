@@ -11,7 +11,7 @@ Using **440 training images** and **121 held-out evaluation boards**, the frozen
 
 This public repo starts from **labeled data / training-ready artifacts onward** and documents the frozen inference path, evaluation contract, artifact provenance, and final engineering decisions.
 
-### Why lead with board accuracy?
+## Why lead with board accuracy?
 
 Cell-level accuracy is useful, but it overstates end-user quality for Sudoku OCR.
 
@@ -22,6 +22,7 @@ In this repo:
 - **Cell accuracy** = mean full-board cell accuracy across all 81 cells
 
 ---
+
 ## What this repo is
 
 This repo starts from **labeled data / training-ready artifacts onward**.
@@ -49,7 +50,7 @@ This is a **clean public artifact** for the frozen system, not the full private 
 
 The target problem is not synthetic Sudoku or only perfectly cropped close-up boards.
 
-The evaluation slice includes real-photo OCR difficulties such as:
+The evaluation includes real-photo OCR difficulties such as:
 - small puzzles in frame
 - skew / tilt
 - blur
@@ -85,6 +86,7 @@ The frozen production path is:
 - Digit calibration: temperature scaling
 
 ---
+
 ## Stagewise summary
 
 ### 1) Geometry
@@ -103,6 +105,7 @@ With labeled corners, the OCR stack was already very strong: **99.72%** occupanc
 The final V1 path keeps the components that won the stagewise decisions: **segmentation** for geometry, **equal-split crops** for OCR, a separate **occupancy stage**, and a **Chars74K-transfer CNN** for digits. Later controlled comparison also showed **letterbox-trained segmentation** outperforming **stretch-trained segmentation** on the downstream metric that mattered most (**85.12%** vs **82.64%** exact givens match), which is why letterbox became the locked production path.
 
 ---
+
 ## Major decisions that stuck
 
 The final system was not the first baseline. The project tested multiple alternatives and froze the path that best balanced end-to-end accuracy, simplicity, and latency.
@@ -122,7 +125,34 @@ The final readout matched the strongest practical success behavior while staying
 
 ---
 
+## Example predictions
+
+Below are two real examples from the project showing the geometry step and the post-warp cell-level prediction overlay.
+
+### Example 1 — `cv_0002`
+
+**Pre-warp / geometry debug**
+
+![cv_0002 geometry debug](docs/images/02_cv_0002_geometry_debug.jpg)
+
+**Post-warp / prediction overlay**
+
+![cv_0002 prediction overlay](docs/images/02_cv_0002_overlay.jpg)
+
+### Example 2 — `cv_0003`
+
+**Pre-warp / geometry debug**
+
+![cv_0003 geometry debug](docs/images/03_cv_0003_geometry_debug.jpg)
+
+**Post-warp / prediction overlay**
+
+![cv_0003 prediction overlay](docs/images/03_cv_0003_overlay.jpg)
+
+---
+
 ## Benchmark context
+
 > [!IMPORTANT]
 > **Do not read this as a strict leaderboard.**
 > These systems were trained and evaluated on different datasets, with different image quality, framing, board size, distortion, and reporting rules. Several published approaches also used cleaner images with less noise and larger boards.
@@ -147,37 +177,11 @@ The final readout matched the strongest practical success behavior while staying
 ‡ AS2 reports 100% constraint satisfaction on Visual Sudoku, which is a synthetic / normalized benchmark and not directly comparable to a real printed-camera-photo OCR pipeline.
 
 ### How to read this table
-This table is meant as **context**, not a strict leaderboard.
 
 The most meaningful comparisons are:
 - other systems that read Sudoku from **real images**
 - other systems that report **board-level** accuracy, not only digit accuracy
 - systems whose task is closer to **printed-camera-photo OCR**, not only synthetic Visual Sudoku
-
----
-## Example predictions
-
-Below are two real examples from the project showing the geometry step and the post-warp cell-level prediction overlay.
-
-### Example 1 — `cv_0002`
-
-**Pre-warp / geometry debug**
-
-![cv_0002 geometry debug](docs/images/02_cv_0002_geometry_debug.jpg)
-
-**Post-warp / prediction overlay**
-
-![cv_0002 prediction overlay](docs/images/02_cv_0002_overlay.jpg)
-
-### Example 2 — `cv_0003`
-
-**Pre-warp / geometry debug**
-
-![cv_0003 geometry debug](docs/images/03_cv_0003_geometry_debug.jpg)
-
-**Post-warp / prediction overlay**
-
-![cv_0003 prediction overlay](docs/images/03_cv_0003_overlay.jpg)
 
 ---
 
@@ -217,7 +221,7 @@ This is a strong frozen V1 system, not a claim that Sudoku image understanding i
 
 ---
 
-## Reproducibility and evaluation note
+## Reproducibility and evaluation
 
 The repo is intentionally frozen around a narrow V1 path. A refactor should preserve behavior and should not silently swap artifacts or configs.
 
@@ -232,7 +236,7 @@ The repo is intentionally frozen around a narrow V1 path. A refactor should pres
 
 ### Official evaluation policy
 
-- While appended to the training dataset, images from the Kaggle dataset are excluded from the public reported slice
+- Kaggle-tagged images are excluded from the public reported metrics
 - the primary metric is **exact givens match**
 - supporting metrics include mean givens accuracy, mean full-board cell accuracy, legality failure rate, and latency
 
@@ -241,11 +245,8 @@ The repo is intentionally frozen around a narrow V1 path. A refactor should pres
 The full frozen evaluation expects access to the original labeled data tree and raw images. Those assets are not bundled into this public repo.
 
 ```bash
-python scripts/run_frozen_eval_v1.py \
-  --data-root /path/to/private_sudoku_data \
-  --splits core_val core_test \
-  --exclude-kaggle
-
+export SUDOKU_DATA_ROOT=/path/to/private_sudoku_data
+python scripts/run_frozen_eval_v1.py --splits core_val core_test --exclude-kaggle
 pytest -q tests/test_metric_regression.py
 ```
 
@@ -288,17 +289,3 @@ This repo is meant to demonstrate three things:
 1. A practical Sudoku OCR system for real photos, not just clean synthetic boards
 2. A clear frozen production path with explicit artifact and metric discipline
 3. Honest end-to-end evaluation where **board accuracy** is treated as the metric that matters most
-
-## Reproducibility note
-
-The frozen model artifacts live in this repo.
-
-Full metric reproduction requires access to the labeled board JSONs and raw evaluation images used by the project. Set `SUDOKU_DATA_ROOT` to the external dataset root, or pass `--data-root` directly to `scripts/run_frozen_eval_v1.py`.
-
-Example:
-
-```bash
-export SUDOKU_DATA_ROOT=/path/to/private_sudoku_data
-pytest -q tests/test_metric_regression.py
-python scripts/run_frozen_eval_v1.py --splits core_val core_test --exclude-kaggle
-```
