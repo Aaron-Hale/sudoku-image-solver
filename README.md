@@ -27,6 +27,36 @@ In this repo:
 
 ---
 
+## Benchmark context
+
+> **Important:** These benchmarks should not be compared as apples-to-apples.
+> Different systems were trained and evaluated on different datasets, with different image quality, framing, board size, distortion, and reporting rules.
+
+> This repo’s evaluation slice includes harder real-photo cases such as **small puzzles in frame**, **skew / tilt**, **blur / faint digits**, and other post-geometry OCR difficulties, so direct comparison to cleaner close-up datasets can be misleading.
+
+| System | Cell accuracy | Board accuracy |
+|---|---:|---:|
+| **This repo** | **98.84%** | **85.95%** |
+| **[Kainos Sudoku CV project](https://www.kainos.com/insights/blogs/ai-academy-capstone-projects--improving-document-data-extraction-through-contextualisation-computer-vision-based-sudoku-solver)** | — | **93.8%*** |
+| **[PBCS / Sudoku Assistant (2024)](https://link.springer.com/article/10.1007/s10601-024-09372-9)** | **99.2%** | **94.84%** |
+| **[Wicht / smartphone Sudoku dataset](https://github.com/wichtounet/sudoku_dataset)** | — | **87.5%**† |
+| **[mineshpatel1/sudoku-solver](https://github.com/mineshpatel1/sudoku-solver)** | — | **99.2%** |
+| **[Recurrent Transformer (ICLR 2023)](https://openreview.net/forum?id=udNhDCr2KQe)** | **99.77%** | **93.5%** |
+| **[NeurASP](https://www.ijcai.org/proceedings/2020/0243.pdf)** | **96.9%** | **66.5%** |
+| **[AS2 (2026)](https://arxiv.org/abs/2603.18436)** | **99.89%** | **100.0%**‡ |
+
+\* Reported on “starting boards” only, which is closer to this repo’s intended use case than completed-board evaluation, but it is still a different dataset and protocol.  
+† Wicht’s dataset page reports 12.5% error on one real-image setup, equivalent to 87.5% accuracy. This is a historical real-camera benchmark, not the same eval protocol as this repo.  
+‡ AS2 reports 100% constraint satisfaction on Visual Sudoku, which is a synthetic / normalized benchmark and not directly comparable to a real printed-camera-photo OCR pipeline.
+
+### How to read this table
+This table is meant as **context**, not a strict leaderboard.
+
+The most meaningful comparisons are:
+- other systems that read Sudoku from **real images**
+- other systems that report **board-level** accuracy, not only digit accuracy
+- systems whose task is closer to **printed-camera-photo OCR**, not only synthetic Visual Sudoku
+
 ## What this repo is
 
 This repo starts from **labeled data / training-ready artifacts onward**.
