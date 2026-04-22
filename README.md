@@ -55,13 +55,13 @@ These examples help show why direct benchmark comparison is tricky: this repo wa
 | System | Cell accuracy | Board accuracy |
 |---|---:|---:|
 | **This repo** | **98.84%** | **85.95%** |
-| **Kainos Sudoku CV project** | — | **93.8%*** |
-| **PBCS / Sudoku Assistant (2024)** | **99.2%** | **94.84%** |
-| **Wicht / smartphone Sudoku dataset** | — | **87.5%**† |
-| **mineshpatel1/sudoku-solver** | — | **99.2%** |
-| **Recurrent Transformer (ICLR 2023)** | **99.77%** | **93.5%** |
-| **NeurASP** | **96.9%** | **66.5%** |
-| **AS2 (2026)** | **99.89%** | **100.0%**‡ |
+| **[Kainos Sudoku CV project](https://www.kainos.com/insights/blogs/ai-academy-capstone-projects--improving-document-data-extraction-through-contextualisation-computer-vision-based-sudoku-solver)** | — | **93.8%*** |
+| **[PBCS / Sudoku Assistant (2024)](https://link.springer.com/article/10.1007/s10601-024-09372-9)** | **99.2%** | **94.84%** |
+| **[Wicht / smartphone Sudoku dataset](https://github.com/wichtounet/sudoku_dataset)** | — | **87.5%**† |
+| **[mineshpatel1/sudoku-solver](https://github.com/mineshpatel1/sudoku-solver)** | — | **99.2%** |
+| **[Recurrent Transformer (ICLR 2023)](https://openreview.net/forum?id=udNhDCr2KQe)** | **99.77%** | **93.5%** |
+| **[NeurASP](https://www.ijcai.org/proceedings/2020/0243.pdf)** | **96.9%** | **66.5%** |
+| **[AS2 (2026)](https://arxiv.org/abs/2603.18436)** | **99.89%** | **100.0%**‡ |
 
 \* Reported on “starting boards” only, which is closer to this repo’s intended use case than completed-board evaluation, but it is still a different dataset and protocol.
 
