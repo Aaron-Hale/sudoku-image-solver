@@ -1,4 +1,5 @@
-
-pytest
-
+numpy
+opencv-python
 pandas
+torch
+pytest
