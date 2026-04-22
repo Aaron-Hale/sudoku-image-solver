@@ -11,17 +11,6 @@ Using **440 training images** and **121 held-out evaluation boards**, the frozen
 
 This public repo starts from **labeled data / training-ready artifacts onward** and documents the frozen inference path, evaluation contract, artifact provenance, and final engineering decisions.
 
-## Headline result
-
-All public metrics in this README are reported on the combined **non-Kaggle `core_val + core_test`** slice only.
-
-- **Boards evaluated:** 121
-- **Board accuracy (exact givens match): 85.95%**
-- **Mean givens accuracy: 97.52%**
-- **Cell accuracy (mean full-board cell accuracy): 98.84%**
-- **Legality failure rate: 8.26%**
-- **Hot steady-state latency:** mean **233.2 ms**, p95 **239.6 ms**
-
 ### Why lead with board accuracy?
 
 Cell-level accuracy is useful, but it overstates end-user quality for Sudoku OCR.
