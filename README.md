@@ -1,30 +1,112 @@
 # Sudoku Image Solver
 
-A reproducible Sudoku image-solver for **real camera photos and webcam frames** of **printed 9x9 Sudoku boards**.
+A reproducible Sudoku image solver for **real camera photos and webcam frames** of **printed 9x9 Sudoku boards**.
 
-> **Important:** These benchmarks should not be compared as apples-to-apples.
-> Different systems were trained and evaluated on different datasets, with different image quality, framing, board size, distortion, and reporting rules.
-> This repo’s evaluation slice includes harder real-photo cases such as **small puzzles in frame**, **skew / tilt**, **blur / faint digits**, and other post-geometry OCR difficulties, so direct comparison to cleaner close-up datasets can be misleading.
+This repo is meant to show the **frozen V1 inference path**, the **evaluation contract**, the **artifact provenance**, and the **engineering decisions** behind the final shipped system.
+
+## Headline result
+
+All public metrics in this README are reported on the combined **non-Kaggle `core_val + core_test`** slice only.
+
+- **Boards evaluated:** 121
+- **Board accuracy (exact givens match): 85.95%**
+- **Mean givens accuracy: 97.52%**
+- **Cell accuracy (mean full-board cell accuracy): 98.84%**
+- **Legality failure rate: 8.26%**
+- **Hot steady-state latency:** mean **233.2 ms**, p95 **239.6 ms**
+
+### Why lead with board accuracy?
+
+Cell-level accuracy is useful, but it overstates end-user quality for Sudoku OCR.
+
+If even one given is wrong, the board may be unusable. That makes **exact givens match** the more meaningful top-line metric for a practical Sudoku image solver.
+
+In this repo:
+- **Board accuracy** = exact match on all true given cells for a board
+- **Cell accuracy** = mean full-board cell accuracy across all 81 cells
 
 ---
 
-## Headline metrics
+## What this repo is
 
-All public metrics below are shown on the combined **non-Kaggle `core_val + core_test`** slice.
+This repo starts from **labeled data / training-ready artifacts onward**.
 
-| Metric | Value |
-|---|---:|
-| Cell accuracy | **98.84%** |
-| Board accuracy | **85.95%** |
+### In scope
+- model training
+- model evaluation
+- calibration
+- image-to-givens inference
+- solver integration
+- reproducible metrics
+- debug and demo outputs
 
-### Why two metrics?
+### Out of scope
+- raw image-labeling workflow
+- annotation tooling
+- manual corner-label creation process
+- full dataset archaeology / labeling history
 
-- **Cell accuracy** is useful because it is common in papers and repos.
-- **Board accuracy** is the metric that better matches end-user trust. One wrong clue can make an otherwise strong read untrustworthy.
+This is a **clean public artifact** for the frozen system, not the full private project history.
 
-In this repo:
-- **Cell accuracy** = **mean full-board cell accuracy**
-- **Board accuracy** = **exact givens match**
+---
+
+## Problem setting
+
+The target problem is not synthetic Sudoku or only perfectly cropped close-up boards.
+
+The evaluation slice includes real-photo OCR difficulties such as:
+- small puzzles in frame
+- skew / tilt
+- blur
+- faint digits
+- post-geometry quality loss
+
+That makes this a more practical printed-camera-photo OCR task, but it also makes direct comparison to cleaner or synthetic benchmarks misleading.
+
+---
+
+## Frozen V1 pipeline
+
+The frozen production path is:
+
+1. **Letterbox-trained segmentation** for board localization
+2. Predicted corners mapped back to **original image coordinates**
+3. Final OCR warp from the **original-resolution image**
+4. **Equal-split** 9x9 cell crops
+5. Cleaned exported **occupancy baseline** artifact
+6. **Chars74K transfer CNN** for digit recognition
+7. Calibrated no-decode readout:
+   - `occ_platt_digit_temp_no_decode`
+
+### Frozen config
+
+- `DEFAULT_WARP_SIZE = 900`
+- `TRIM_FRAC = 0.12`
+- `occ_threshold = 0.35`
+
+### Frozen calibration
+
+- Occupancy calibration: Platt scaling
+- Digit calibration: temperature scaling
+
+---
+
+## Major decisions that stuck
+
+The final system was not the first baseline. The project tested multiple alternatives and froze the path that best balanced end-to-end accuracy, simplicity, and latency.
+
+| Area | Frozen V1 choice | Alternatives not promoted to the public V1 path |
+|---|---|---|
+| Geometry front end | **Letterbox-trained segmentation** | Classical CV front end, stretch-trained segmentation, adaptive-warp default |
+| OCR warp path | **Warp from original-resolution image** | Warp from resized segmentation image |
+| OCR crop method | **Equal-split crops** | Refit / grid-box default path |
+| Occupancy stage | **Cleaned exported baseline** | Later occupancy variants that did not clearly earn promotion |
+| Digit recognizer | **Chars74K transfer CNN** | Linear softmax baseline, weaker abandoned variants |
+| Final readout | **`occ_platt_digit_temp_no_decode`** | Default false-empty override, CLAHE-first path, aggressive constrained-decoding default |
+
+### Why this readout stayed
+
+The final readout matched the strongest practical success behavior while staying simpler and slightly lower-latency than the closest competing no-decode variant.
 
 ---
 
@@ -35,155 +117,97 @@ Below are two real examples from the project showing the geometry step and the p
 ### Example 1 — `cv_0002`
 
 **Pre-warp / geometry debug**
+
 ![cv_0002 geometry debug](docs/images/02_cv_0002_geometry_debug.jpg)
 
 **Post-warp / prediction overlay**
+
 ![cv_0002 prediction overlay](docs/images/02_cv_0002_overlay.jpg)
 
 ### Example 2 — `cv_0003`
 
 **Pre-warp / geometry debug**
+
 ![cv_0003 geometry debug](docs/images/03_cv_0003_geometry_debug.jpg)
 
 **Post-warp / prediction overlay**
+
 ![cv_0003 prediction overlay](docs/images/03_cv_0003_overlay.jpg)
 
-These examples help show why direct benchmark comparison is tricky: this repo was built and evaluated on real-photo cases that include small puzzles in frame, skew / tilt, blur, faint digits, and other OCR difficulties rather than only clean close-up crops.
+---
 
-## Benchmark context
+## What is solved, and what is still hard
 
-| System | Cell accuracy | Board accuracy |
-|---|---:|---:|
-| **This repo** | **98.84%** | **85.95%** |
-| **[Kainos Sudoku CV project](https://www.kainos.com/insights/blogs/ai-academy-capstone-projects--improving-document-data-extraction-through-contextualisation-computer-vision-based-sudoku-solver)** | — | **93.8%*** |
-| **[PBCS / Sudoku Assistant (2024)](https://link.springer.com/article/10.1007/s10601-024-09372-9)** | **99.2%** | **94.84%** |
-| **[Wicht / smartphone Sudoku dataset](https://github.com/wichtounet/sudoku_dataset)** | — | **87.5%**† |
-| **[mineshpatel1/sudoku-solver](https://github.com/mineshpatel1/sudoku-solver)** | — | **99.2%** |
-| **[Recurrent Transformer (ICLR 2023)](https://openreview.net/forum?id=udNhDCr2KQe)** | **99.77%** | **93.5%** |
-| **[NeurASP](https://www.ijcai.org/proceedings/2020/0243.pdf)** | **96.9%** | **66.5%** |
-| **[AS2 (2026)](https://arxiv.org/abs/2603.18436)** | **99.89%** | **100.0%**‡ |
+### Solved enough for V1
 
-\* Reported on “starting boards” only, which is closer to this repo’s intended use case than completed-board evaluation, but it is still a different dataset and protocol.
+- geometry is solved enough for V1
+- segmentation is the correct production front end
+- original-image warp is the correct OCR warp path
+- the current occupancy stage is good enough
+- the current digit recognizer is good enough
 
-† Wicht’s dataset page reports 12.5% error on one real-image setup, equivalent to 87.5% accuracy. This is a historical real-camera benchmark, not the same eval protocol as this repo.
+### Remaining failure pattern
 
-‡ AS2 reports 100% constraint satisfaction on Visual Sudoku, which is a synthetic / normalized benchmark and not directly comparable to a real printed-camera-photo OCR pipeline.
+The remaining misses are concentrated in a minority of hard boards.
 
-### How to read this table
+The dominant remaining failure mode is still:
 
-This table is meant as **context**, not a strict leaderboard.
+**filled cells being dropped as empty**
 
-The most meaningful comparisons are:
-- other systems that read Sudoku from **real images**
-- other systems that report **board-level** accuracy, not only digit accuracy
-- systems whose task is closer to **printed-camera-photo OCR**, not only synthetic Visual Sudoku
+Hard cases cluster around:
+- small boards inside larger images
+- skew / tilt
+- blur
+- faint digits
+- post-geometry quality loss
+- a few real ambiguities such as **6 vs 8**
+
+### What this repo does not claim
+
+- live AR-grade temporal stability
+- fully solved scene-level board discovery
+- a completely solved last-mile OCR problem
+
+This is a strong frozen V1 system, not a claim that Sudoku image understanding is finished.
 
 ---
 
-## Why board accuracy matters more than cell accuracy
+## Reproducibility and evaluation note
 
-Cell accuracy is common because it is easy to report and compare.
+The repo is intentionally frozen around a narrow V1 path. A refactor should preserve behavior and should not silently swap artifacts or configs.
 
-But for real user trust, **board accuracy** is usually the better metric:
-- if one clue is wrong, the user may not trust the whole solve
-- a system can have very high cell accuracy and still miss too many boards end-to-end
-- this repo is a practical example of that gap
+### Frozen artifact family
 
-That is why this repo leads with:
-- **Cell accuracy = 98.84%**
-- **Board accuracy = 85.95%**
+- `models/frozen_v1/segmentation/letterbox_seg_checkpoint.pt`
+- `models/frozen_v1/occupancy/occupancy_model.npz`
+- `models/frozen_v1/digits/digit_cnn.pt`
+- `models/frozen_v1/calibration/occ_calibration.json`
+- `models/frozen_v1/calibration/digit_calibration.json`
+- `models/frozen_v1/calibration/calibration_manifest.json`
 
-instead of pretending the cell number alone captures the user experience.
+### Official evaluation policy
 
----
+- official public reporting is **non-Kaggle evaluation only**
+- Kaggle-tagged boards are excluded from the public reported slice
+- the primary metric is **exact givens match**
+- supporting metrics include mean givens accuracy, mean full-board cell accuracy, legality failure rate, and latency
 
-## Practical path to improve board accuracy on video
+### Running the frozen evaluation
 
-A promising next step for video feeds is **temporal ensembling across 3 adjacent frames**.
+The full frozen evaluation expects access to the original labeled data tree and raw images. Those assets are not bundled into this public repo.
 
-Instead of trusting one frame:
-1. run the frozen model on 3 nearby frames of the same puzzle
-2. vote per cell on **empty vs filled**
-3. vote on the digit label, or sum calibrated probabilities
-4. output the ensembled board
+```bash
+python scripts/run_frozen_eval_v1.py \
+  --old-repo-root /path/to/original/sudoku_solver \
+  --splits core_val core_test \
+  --exclude-kaggle
 
-Why this is attractive:
-- the remaining errors are concentrated in a small number of hard cells
-- adjacent frames often provide slightly different views of faint or ambiguous digits
-- this can improve **board accuracy** without changing the frozen single-frame model
-
-This is a future enhancement idea, not a number already claimed in the benchmark table.
-
----
-
-## Frozen V1 pipeline
-
-The frozen production path is:
-
-- **letterbox-trained segmentation** for board localization
-- predicted corners mapped back to **original image coordinates**
-- final OCR warp from the **original-resolution image**
-- **equal-split** 9x9 cell crops
-- cleaned **occupancy baseline** artifact
-- **Chars74K transfer CNN** for digits
-- calibrated no-decode readout:
-  - `occ_platt_digit_temp_no_decode`
-
-Key frozen config:
-- `DEFAULT_WARP_SIZE = 900`
-- `TRIM_FRAC = 0.12`
-- `occ_threshold = 0.35`
+pytest -q tests/test_metric_regression.py
+```
 
 ---
 
-## Approaches tested
-
-This repo keeps the final winner, but the project got there by testing several alternatives.
-
-### Geometry
-- classical CV outer-board detection
-- segmentation as the geometry upgrade
-- stretch-trained segmentation
-- letterbox-trained segmentation
-- original-image OCR warp vs resized-image OCR warp
-
-### OCR crops
-- equal-split crops
-- refit / grid-box alternatives
-
-### Occupancy
-- initial baseline
-- blacklist cleanup
-- later occupancy-focused experiments that did not win promotion
-
-### Digit recognition
-- linear softmax baseline
-- cells-only CNN
-- MNIST transfer
-- EMNIST transfer
-- Chars74K only
-- Chars74K transfer
-
-### Final readout
-- baseline no-calibration path
-- calibrated no-decode variants
-- more aggressive constrained-decoding variants that did not win promotion
-
----
-
-## Major decisions that stuck
-
-- **Segmentation** replaced the classical detector as the main front end.
-- **Letterbox-trained segmentation** beat stretch-trained segmentation on the downstream metric that mattered.
-- The final OCR warp should come from the **original image**, not the resized segmentation image.
-- **Equal split** remained the best default crop method for the public V1 path.
-- **Chars74K transfer CNN** became the digit recognizer.
-- The final shipped readout was:
-  - `occ_platt_digit_temp_no_decode`
-
----
-
-## Repo layout
+## Repository layout
 
 ```text
 models/frozen_v1/
@@ -209,4 +233,14 @@ tests/
 
 docs/
   MODEL_PROVENANCE.md
+```
 
+---
+
+## Summary
+
+This repo is meant to demonstrate three things:
+
+1. A practical Sudoku OCR system for real photos, not just clean synthetic boards
+2. A clear frozen production path with explicit artifact and metric discipline
+3. Honest end-to-end evaluation where **board accuracy** is treated as the metric that matters most
