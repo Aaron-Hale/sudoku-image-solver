@@ -26,7 +26,8 @@ In this repo:
 ## Benchmark context
 
 > [!IMPORTANT]
-> **Do not compare these benchmarks as apples-to-apples.** Different systems were trained and evaluated on different datasets, with different image quality, framing, board size, distortion, and reporting rules.
+> **Do not compare these benchmarks as apples-to-apples.**
+> Different systems were trained and evaluated on different datasets, with different image quality, framing, board size, distortion, and reporting rules.
 
 > This repo’s evaluation slice includes harder real-photo cases such as **small puzzles in frame**, **skew / tilt**, **blur / faint digits**, and other post-geometry OCR difficulties, so direct comparison to cleaner close-up datasets can be misleading.
 
