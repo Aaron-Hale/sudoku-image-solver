@@ -1,8 +1,15 @@
 # Sudoku Image Solver
 
-A reproducible Sudoku image solver for **real camera photos and webcam frames** of **printed 9x9 Sudoku boards**.
+A frozen V1 system for reading **printed 9x9 Sudoku boards from real camera photos and webcam frames**.
 
-This repo is meant to show the **frozen V1 inference path**, the **evaluation contract**, the **artifact provenance**, and the **engineering decisions** behind the final shipped system.
+Unlike synthetic-board or perfectly cropped close-up pipelines, this project targets real-photo OCR failure modes such as **small puzzles in frame, skew / tilt, blur, faint digits, and post-geometry quality loss**.
+
+Using **440 training images** and **121 held-out evaluation boards**, the frozen system achieves:
+- **85.95% board accuracy** (exact givens match)
+- **98.84% cell accuracy**
+- **233.2 ms mean** hot steady-state latency (**239.6 ms p95**)
+
+This public repo starts from **labeled data / training-ready artifacts onward** and documents the frozen inference path, evaluation contract, artifact provenance, and final engineering decisions.
 
 ## Headline result
 
