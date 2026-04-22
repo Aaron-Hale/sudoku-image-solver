@@ -89,20 +89,58 @@ The frozen production path is:
 
 ## Stagewise summary
 
-### 1) Geometry
-Board localization was the main early bottleneck. On `core_val`, the classical CV front end reached only **18.64%** exact board match, while segmentation reached **76.27%**, close to **77.97%** with oracle label corners. Classical CV worked when the board dominated the frame, but broke on small boards, clutter, blur, and competing rectangular structures, which is why segmentation became the primary front end.
+### 1) Geometry: finding the board
+The first problem was simply finding the Sudoku board reliably in a full image. The project started with a **classical CV detector** based on contours and quadrilateral selection. That worked for close-up boards, but it broke when the puzzle was small in frame, blurred, cluttered, or competing with other rectangular structures.
 
-### 2) Warping and crop strategy
-After geometry improved, the next question was how to crop cells for OCR. A manual A/B review on 40 validation boards showed **equal split better on 11 boards**, **refit better on 3**, and **26 ties**, so equal split stayed the default OCR crop path. Refit remained useful for parser-side debugging and imperfect warps, but it was not a clear overall win for the training/inference path.
+To fix that, the project moved to a **trained segmentation model** using the existing board-corner labels already available in the dataset. That solved most of the geometry problem immediately. On `core_val`, the classical front end reached only **18.64%** exact board match, while segmentation reached **76.27%**, close to **77.97%** with oracle label corners.
 
-### 3) OCR model choice
-The digit task turned out to be materially harder than occupancy. A linear softmax baseline reached only **73.8%** validation accuracy and clearly underfit the printed-digit problem, so the repo moved to a CNN. In the Day 21 benchmark, **Chars74K transfer** was the best setup at **94.53%** validation accuracy, ahead of **cells only (93.63%)**, **MNIST transfer (94.26%)**, and **EMNIST transfer (94.37%)**. That fit the task: printed OCR-style pretraining helped more than handwritten-only sources.
+The final geometry refinement was choosing **how to preprocess images for segmentation**. A controlled comparison showed that **letterbox-trained segmentation** (aspect-ratio-preserving resize with padding) was better than stretch-trained segmentation on the downstream metric that mattered most. It got **97.52%** of boards with all 4 corners within **25 px**, versus **93.39%** for stretch, so letterbox became the frozen V1 geometry front end.
 
-### 4) Stagewise vs end-to-end behavior
-With labeled corners, the OCR stack was already very strong: **99.72%** occupancy accuracy and **99.59%** occupied-cell digit accuracy. But full pure-model inference still reached **84.30%** exact givens match and **97.09%** mean givens accuracy. That showed the remaining gap was not basic OCR capacity or heavier Sudoku logic; it was end-to-end robustness on hard real-photo boards, especially **filled cells being dropped as empty**.
+### 2) Converting the board into OCR-ready cells
+Once board localization was strong, the next problem was how to turn a warped board into stable **cell crops** for OCR. The project compared two options: simple **equal-split crops** versus **refit/grid-box crops** that try to follow the inner lattice more closely.
+
+A manual A/B review on **40 validation boards** showed that equal split was already strong enough: **11 boards favored equal split, 3 favored refit, and 26 were ties**. Refit remained useful for parser-side debugging and imperfect warps, but it was not a large enough win to justify making it the default public inference path.
+
+That is why the frozen V1 system uses **equal-split crops** as the default OCR path.
+
+### 3) OCR: separating occupancy from digit recognition
+The OCR problem was split into two stages:
+1. **Occupancy**: is a cell empty or filled?
+2. **Digit recognition**: if filled, which digit is it?
+
+That split mattered because those two tasks fail differently. Occupancy is easier in principle, while digit recognition is a harder shape-classification problem.
+
+For digits, the project first tried a **linear softmax baseline**, which reached only **73.8%** validation accuracy and clearly underfit the printed-digit task. The next step was to move to a **CNN**, which was much better aligned with the visual nature of the problem. In the Day 21 benchmark, the best setup was **Chars74K transfer** at **94.53%** validation accuracy, ahead of **cells only (93.63%)**, **MNIST transfer (94.26%)**, and **EMNIST transfer (94.37%)**.
+
+That result made the final digit-model choice clear: use a **Chars74K-transfer CNN** as the production recognizer.
+
+### 4) Stagewise performance vs end-to-end performance
+One useful question was whether the system still had a basic OCR problem, or whether the remaining failures were caused by end-to-end compounding errors.
+
+To answer that, the project measured OCR under **correct geometry** by using labeled corners. Under that setup, the OCR stack was already very strong:
+- **99.72%** occupancy accuracy
+- **99.59%** occupied-cell digit accuracy
+
+But with full pure-model inference, the system reached:
+- **84.30%** exact givens match
+- **97.09%** mean givens accuracy
+
+That gap showed the remaining problem was **not** basic OCR capacity and **not** a lack of heavier Sudoku logic. The main issue was end-to-end robustness on hard real-photo boards.
+
+The dominant remaining failure mode was **filled cells being dropped as empty**, which is why keeping occupancy separate from digit recognition was useful: it made the true bottleneck visible.
 
 ### 5) Final V1 direction
-The final V1 path keeps the components that won the stagewise decisions: **segmentation** for geometry, **equal-split crops** for OCR, a separate **occupancy stage**, and a **Chars74K-transfer CNN** for digits. Later controlled comparison also showed **letterbox-trained segmentation** outperforming **stretch-trained segmentation** on the downstream metric that mattered most (**85.12%** vs **82.64%** exact givens match), which is why letterbox became the locked production path.
+By this point, the project had enough evidence to stop treating the system as an open-ended experiment and lock a production path.
+
+The frozen V1 system uses:
+- **letterbox-trained segmentation** for geometry
+- **original-image OCR warp** after board localization
+- **equal-split crops** for OCR
+- a separate **occupancy stage**
+- a **Chars74K-transfer CNN** for digits
+- a calibrated no-decode readout: `occ_platt_digit_temp_no_decode`
+
+That combination was not chosen because each component looked best in isolation. It was chosen because it gave the best overall balance of **board-level accuracy, robustness, simplicity, and latency** on the real-photo task this repo is meant to solve.
 
 ---
 
