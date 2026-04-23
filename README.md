@@ -162,19 +162,9 @@ The final readout matched the strongest practical success behavior while staying
 
 ## Example predictions
 
-Below are two real examples from the project showing the geometry step and the post-warp cell-level prediction overlay.
+Below is a sample from the project showing the geometry step and the post-warp cell-level prediction overlay.
 
-### Example 1 — `cv_0002`
-
-**Pre-warp / geometry debug**
-
-![cv_0002 geometry debug](docs/images/02_cv_0002_geometry_debug.jpg)
-
-**Post-warp / prediction overlay**
-
-![cv_0002 prediction overlay](docs/images/02_cv_0002_overlay.jpg)
-
-### Example 2 — `cv_0003`
+### Raw Image — `cv_0003`
 
 **Pre-warp / geometry debug**
 
