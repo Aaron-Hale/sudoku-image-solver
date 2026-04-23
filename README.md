@@ -176,7 +176,7 @@ Below is a sample from the project showing the geometry step and the post-warp c
 
 ---
 
-## Benchmark context
+## Researched Approaches
 
 > [!IMPORTANT]
 > **Do not read this as a strict leaderboard.**
