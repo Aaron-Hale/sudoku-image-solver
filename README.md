@@ -243,6 +243,34 @@ This is a strong frozen V1 system, not a claim that Sudoku image understanding i
 
 ---
 
+## Where the current V1 still breaks
+
+Most of the remaining misses come from a small number of hard boards, not broad failure across the dataset. In practice, the residual errors fall into three buckets.
+
+### 1) Residual warp / localization failures (**3 / 121 boards**)
+
+These are usually smaller, farther-away boards where the puzzle occupies too few pixels before OCR. In these cases, the board is found, but the final warp is not clean enough to preserve all of the detail needed for reliable downstream recognition.
+
+![Residual warp failure example](docs/images/failure_cases/core_test_cte_0043_miss_overlay.jpg)
+
+### 2) Rare occupancy failure (**1 / 9,801 cells**)
+
+Occupancy errors are now rare. Across **121 evaluation boards** (**9,801 total cells**), this issue appeared once. The representative failure below is included for completeness, but it is not a major driver of the remaining error.
+
+![Rare occupancy failure example](docs/images/failure_cases/core_test_cte_0008_miss_overlay.jpg)
+
+### 3) Wrong digit inference on small / low-quality puzzles (**13 / 121 boards**)
+
+The largest remaining bucket is digit confusion on smaller, farther-away puzzles where the final OCR crop has limited detail. After segmentation, the system already performs the final OCR warp on the **original image resolution**, so the remaining mistakes are generally reasonable ambiguities such as **8 vs 6** or **9 vs 6**, not obvious model collapse.
+
+A more aggressive correction layer that compares digits against Sudoku consistency constraints could reduce some of these errors, but it would add latency and complexity and is intentionally not part of the default V1 path.
+
+![Wrong digit inference example](docs/images/failure_cases/core_test_cte_0014_miss_overlay.jpg)
+
+### Practical takeaway
+
+The remaining misses are concentrated in a narrow hard-case slice: **small / distant boards, reduced stroke quality, and a few visually ambiguous digits**. That is why the next likely gains come from better hard-case OCR handling, not from reworking the overall architecture.
+
 ## Reproducibility and evaluation
 
 The repo is intentionally frozen around a narrow V1 path. A refactor should preserve behavior and should not silently swap artifacts or configs.
