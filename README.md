@@ -309,6 +309,7 @@ FREEZE_CONTRACT.md     Frozen artifact and evaluation contract
 README.md              Project overview and technical narrative
 pyproject.toml         Package metadata and test configuration
 requirements.txt       Minimal dependency list
+```
 
 
 ## Summary
