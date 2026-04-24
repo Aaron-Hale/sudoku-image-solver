@@ -1,6 +1,7 @@
 # Sudoku Image Solver
 
 An end-to-end system for reading **printed 9×9 Sudoku boards from real camera photos and webcam frames**, built for harder real-world conditions than synthetic-only or close-up-only pipelines. Using **440 training images** and **121 held-out evaluation boards**, the frozen system achieves **85.95% board accuracy** (exact givens match), **98.84% cell accuracy**, and **233.2 ms mean** hot steady-state latency (**239.6 ms p95**). The project is designed around real-photo OCR failure modes such as **small puzzles in frame, skew / tilt, blur, faint digits, and post-geometry quality loss**, and the repo documents the full frozen inference path, evaluation contract, artifact provenance, and final engineering decisions behind the shipped system.
+![Example board overlay](docs/images/examples/example1.png)
 
 ## Why board accuracy is the top-line metric
 
