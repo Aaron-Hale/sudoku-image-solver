@@ -221,7 +221,7 @@ The full frozen evaluation expects access to the external labeled data tree and 
 export SUDOKU_DATA_ROOT=/path/to/private_sudoku_data
 python scripts/run_frozen_eval_v1.py --splits core_val core_test --exclude-kaggle
 pytest -q tests/test_metric_regression.py
-
+```
 
 ## Qualitative example
 
